@@ -83,3 +83,4 @@ ssl/certs/
 # Arquivos temporários de configuração
 domain-config.local
 server-config.local 
+.vercel

@@ -15,7 +15,7 @@ services:
   database:
     image: postgres:15
     environment:
-      POSTGRES_PASSWORD: senha123
+      POSTGRES_PASSWORD: Senha@hack123
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
     ports:
