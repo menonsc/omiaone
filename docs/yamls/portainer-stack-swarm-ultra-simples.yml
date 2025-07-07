@@ -1,0 +1,208 @@
+version: '3.8'
+
+services:
+  # Frontend ULTRA SIMPLES - SEM COMANDO COMPLEXO
+  frontend:
+    image: nginx:alpine
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Banco de dados PostgreSQL
+  supabase:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - target: 5432
+        published: 5433
+        protocol: tcp
+        mode: host
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Redis para cache e sessões
+  redis:
+    image: redis:7-alpine
+    ports:
+      - target: 6379
+        published: 6379
+        protocol: tcp
+        mode: host
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+    command: redis-server --appendonly yes
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # WebSocket Server SIMPLES
+  websocket-server:
+    image: node:20-alpine
+    ports:
+      - target: 3000
+        published: 3002
+        protocol: tcp
+        mode: host
+    networks:
+      - network_public
+    working_dir: /app
+    command: |
+      sh -c "
+      echo 'Iniciando WebSocket...'
+      cat > package.json << 'EOF'
+      {
+        \"name\": \"websocket\",
+        \"version\": \"1.0.0\",
+        \"dependencies\": {
+          \"ws\": \"^8.14.2\"
+        }
+      }
+      EOF
+      
+      cat > server.js << 'EOF'
+      const WebSocket = require('ws');
+      const wss = new WebSocket.Server({ port: 3000 });
+      
+      wss.on('connection', function connection(ws) {
+        console.log('Nova conexão WebSocket');
+        ws.send('Bem-vindo ao WebSocket!');
+        
+        ws.on('message', function incoming(message) {
+          console.log('Mensagem:', message.toString());
+          ws.send('Echo: ' + message.toString());
+        });
+      });
+      
+      console.log('WebSocket Server rodando na porta 3000');
+      EOF
+      
+      npm install --quiet
+      node server.js
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - target: 3000
+        published: 4000
+        protocol: tcp
+        mode: host
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=157.180.113.99
+      - GF_SERVER_ROOT_URL=http://157.180.113.99:4000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - network_public
+    user: "472"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - target: 9090
+        published: 9090
+        protocol: tcp
+        mode: host
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  supabase_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  network_public:
+    external: true 

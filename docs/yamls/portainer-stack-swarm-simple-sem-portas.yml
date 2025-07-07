@@ -1,0 +1,399 @@
+version: '3.8'
+
+services:
+  # Frontend React
+  frontend:
+    image: nginx:alpine
+    environment:
+      - NODE_ENV=production
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      mkdir -p /usr/share/nginx/html &&
+      cat > /usr/share/nginx/html/index.html << 'EOF'
+      <!DOCTYPE html>
+      <html lang=\"pt-BR\">
+      <head>
+          <meta charset=\"UTF-8\">
+          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+          <title>Agentes de IA - Dashboard</title>
+          <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; }
+              .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+              .header { text-align: center; margin-bottom: 3rem; }
+              .header h1 { font-size: 3rem; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+              .header p { font-size: 1.2rem; opacity: 0.9; }
+              .services { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem; }
+              .service-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 2rem; text-align: center; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.2); }
+              .service-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.2); }
+              .service-card h3 { font-size: 1.5rem; margin-bottom: 1rem; color: #fff; }
+              .service-card p { margin-bottom: 1.5rem; opacity: 0.8; line-height: 1.6; }
+              .btn { display: inline-block; padding: 0.8rem 2rem; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 25px; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.3); font-weight: 500; }
+              .btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+              .status { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+              .status-item { background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; text-align: center; }
+              .status-online { border-left: 4px solid #4CAF50; }
+              .status-offline { border-left: 4px solid #f44336; }
+              .footer { text-align: center; margin-top: 3rem; opacity: 0.7; }
+          </style>
+      </head>
+      <body>
+          <div class=\"container\">
+              <div class=\"header\">
+                  <h1>🤖 Agentes de IA</h1>
+                  <p>Sistema de automação inteligente com WhatsApp e IA</p>
+              </div>
+              
+              <div class=\"services\">
+                  <div class=\"service-card\">
+                      <h3>📊 Grafana</h3>
+                      <p>Dashboards e métricas do sistema em tempo real</p>
+                      <a href=\":4000\" class=\"btn\" target=\"_blank\">Acessar Grafana</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🔍 Prometheus</h3>
+                      <p>Monitoramento e coleta de métricas dos serviços</p>
+                      <a href=\":9090\" class=\"btn\" target=\"_blank\">Acessar Prometheus</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🔌 WebSocket</h3>
+                      <p>Servidor de comunicação apenas interno</p>
+                      <a href=\"#\" class=\"btn\" onclick=\"alert('WebSocket rodando internamente - não exposto')\">Status: Interno</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🗄️ PostgreSQL</h3>
+                      <p>Banco de dados interno (não exposto)</p>
+                      <a href=\"#\" class=\"btn\" onclick=\"alert('PostgreSQL rodando internamente')\">Status: Seguro</a>
+                  </div>
+              </div>
+              
+              <div class=\"status\">
+                  <div class=\"status-item status-online\">
+                      <h4>🌐 Frontend</h4>
+                      <p>Online</p>
+                  </div>
+                  <div class=\"status-item status-online\">
+                      <h4>🗄️ Database</h4>
+                      <p>Interno</p>
+                  </div>
+                  <div class=\"status-item status-online\">
+                      <h4>📊 Monitoring</h4>
+                      <p>Ativo</p>
+                  </div>
+                  <div class=\"status-item status-online\">
+                      <h4>🔌 WebSocket</h4>
+                      <p>Rodando</p>
+                  </div>
+              </div>
+              
+              <div class=\"footer\">
+                  <p>Agentes de IA v1.0 - Sistema de automação inteligente</p>
+                  <p>Deploy realizado com Docker Swarm + Portainer</p>
+              </div>
+          </div>
+          
+          <script>
+              console.log('Agentes de IA - Sistema carregado com sucesso!');
+          </script>
+      </body>
+      </html>
+      EOF
+      
+      cat > /etc/nginx/nginx.conf << 'EOF'
+      events {
+          worker_connections 1024;
+      }
+      http {
+          include /etc/nginx/mime.types;
+          default_type application/octet-stream;
+          
+          server {
+              listen 80;
+              server_name _;
+              root /usr/share/nginx/html;
+              index index.html;
+              
+              location / {
+                  try_files \$uri \$uri/ /index.html;
+              }
+              
+              location /health {
+                  return 200 'healthy';
+                  add_header Content-Type text/plain;
+              }
+          }
+      }
+      EOF
+      
+      nginx -g 'daemon off;'
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Banco de dados PostgreSQL (Interno - sem exposição de porta)
+  supabase:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Redis para cache e sessões (Interno - sem exposição de porta)
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+    command: redis-server --appendonly yes
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Servidor WebSocket (Interno - sem exposição de porta)
+  websocket-server:
+    image: node:20-alpine
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      apk add --no-cache curl &&
+      npm install -g socket.io &&
+      cat > /app/server.js << 'EOF'
+      const { createServer } = require('http')
+      const { Server } = require('socket.io')
+
+      const app = createServer((req, res) => {
+        if (req.url === '/health') {
+          res.writeHead(200, { 'Content-Type': 'text/plain' })
+          res.end('healthy')
+          return
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html' })
+        res.end('<h1>WebSocket Server is running</h1>')
+      })
+
+      const io = new Server(app, {
+        cors: { origin: '*', methods: ['GET', 'POST'] }
+      })
+
+      io.on('connection', (socket) => {
+        console.log('Cliente conectado:', socket.id)
+        socket.on('disconnect', () => {
+          console.log('Cliente desconectado:', socket.id)
+        })
+      })
+
+      const PORT = process.env.PORT || 3001
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log('Servidor WebSocket rodando na porta', PORT)
+      })
+      EOF
+      node /app/server.js
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Nginx Reverse Proxy
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      cat > /etc/nginx/nginx.conf << 'EOF'
+      events {
+          worker_connections 1024;
+      }
+      http {
+          upstream frontend {
+              server frontend:80;
+          }
+          upstream websocket {
+              server websocket-server:3001;
+          }
+          server {
+              listen 80;
+              server_name _;
+              
+              location /socket.io/ {
+                  proxy_pass http://websocket;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade \$$http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host \$$host;
+              }
+              
+              location /health {
+                  return 200 'healthy';
+                  add_header Content-Type text/plain;
+              }
+              
+              location / {
+                  proxy_pass http://frontend;
+                  proxy_set_header Host \$$host;
+              }
+          }
+      }
+      EOF
+      nginx -g 'daemon off;'
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Monitoramento com Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - target: 9090
+        published: 9090
+        protocol: tcp
+        mode: host
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      cat > /etc/prometheus/prometheus.yml << 'EOF'
+      global:
+        scrape_interval: 15s
+      scrape_configs:
+        - job_name: 'prometheus'
+          static_configs:
+            - targets: ['localhost:9090']
+        - job_name: 'frontend'
+          static_configs:
+            - targets: ['frontend:80']
+        - job_name: 'websocket'
+          static_configs:
+            - targets: ['websocket-server:3001']
+      EOF
+      prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.enable-lifecycle
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Grafana para visualização
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - target: 3000
+        published: 4000
+        protocol: tcp
+        mode: host
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - network_public
+    user: "472"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  supabase_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  network_public:
+    external: true 

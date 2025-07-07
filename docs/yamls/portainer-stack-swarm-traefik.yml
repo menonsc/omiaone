@@ -1,0 +1,253 @@
+version: '3.8'
+
+services:
+  # Frontend React
+  frontend:
+    image: ${REGISTRY:-localhost}/agentes-ia-frontend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`producao.elevroi.com`)"
+        - "traefik.http.routers.frontend.tls=true"
+        - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+        - "traefik.http.services.frontend.loadbalancer.server.port=80"
+        - "traefik.docker.network=traefik-public"
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_GOOGLE_GEMINI_API_KEY=${VITE_GOOGLE_GEMINI_API_KEY}
+      - VITE_EVOLUTION_API_URL=${VITE_EVOLUTION_API_URL}
+      - VITE_EVOLUTION_API_KEY=${VITE_EVOLUTION_API_KEY}
+      - VITE_EVOLUTION_INSTANCE_NAME=${VITE_EVOLUTION_INSTANCE_NAME}
+      - VITE_WEBSOCKET_URL=${VITE_WEBSOCKET_URL}
+    networks:
+      - agentes-ia-network
+      - traefik-public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Supabase (Banco de dados + API)
+  supabase:
+    image: supabase/postgres:15.1.0.117
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD:-your-super-secret-and-long-postgres-password}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - agentes-ia-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis (para cache e sessões)
+  redis:
+    image: redis:7-alpine
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    volumes:
+      - redis_data:/data
+    networks:
+      - agentes-ia-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Monitoramento com Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.prometheus.rule=Host(`producao.elevroi.com`) && PathPrefix(`/prometheus`)"
+        - "traefik.http.routers.prometheus.tls=true"
+        - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
+        - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+        - "traefik.http.routers.prometheus.middlewares=prometheus-auth"
+        - "traefik.http.middlewares.prometheus-auth.basicauth.users=admin:$$2y$$10$$8K1p/a0dL1LXMIgoEDFrwOfgqwAG6WUpoP9YmQA.8K1p/a0dL1LXMIgoEDFrwOfgqwAG6WUpoP9YmQA"
+        - "traefik.docker.network=traefik-public"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - agentes-ia-network
+      - traefik-public
+
+  # Grafana para visualização
+  grafana:
+    image: grafana/grafana:latest
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.grafana.rule=Host(`producao.elevroi.com`) && PathPrefix(`/grafana`)"
+        - "traefik.http.routers.grafana.tls=true"
+        - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+        - "traefik.http.routers.grafana.middlewares=grafana-auth"
+        - "traefik.http.middlewares.grafana-auth.basicauth.users=admin:$$2y$$10$$8K1p/a0dL1LXMIgoEDFrwOfgqwAG6WUpoP9YmQA.8K1p/a0dL1LXMIgoEDFrwOfgqwAG6WUpoP9YmQA"
+        - "traefik.docker.network=traefik-public"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - agentes-ia-network
+      - traefik-public
+
+  # WebSocket Server
+  websocket-server:
+    image: ${REGISTRY:-localhost}/websocket-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.websocket
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.websocket.rule=Host(`producao.elevroi.com`) && PathPrefix(`/websocket`)"
+        - "traefik.http.routers.websocket.tls=true"
+        - "traefik.http.routers.websocket.tls.certresolver=letsencrypt"
+        - "traefik.http.services.websocket.loadbalancer.server.port=3001"
+        - "traefik.http.routers.websocket.middlewares=websocket-headers"
+        - "traefik.http.middlewares.websocket-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+        - "traefik.docker.network=traefik-public"
+    networks:
+      - agentes-ia-network
+      - traefik-public
+
+volumes:
+  supabase_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  agentes-ia-network:
+    driver: overlay
+    attachable: true
+  traefik-public:
+    external: true 

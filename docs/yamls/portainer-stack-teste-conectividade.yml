@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # Teste básico - apenas nginx
+  teste-nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+    command: |
+      sh -c "
+      echo 'Criando página de teste...'
+      cat > /usr/share/nginx/html/index.html << 'EOF'
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>TESTE DE CONECTIVIDADE</title>
+          <style>
+              body { 
+                  font-family: Arial, sans-serif; 
+                  background: #2c3e50; 
+                  color: white; 
+                  padding: 50px; 
+                  text-align: center; 
+              }
+              .container { 
+                  max-width: 800px; 
+                  margin: 0 auto; 
+                  background: #34495e; 
+                  padding: 40px; 
+                  border-radius: 10px; 
+              }
+              h1 { color: #e74c3c; font-size: 3em; }
+              .success { color: #27ae60; font-size: 1.5em; margin: 20px 0; }
+              .info { background: #3498db; padding: 20px; border-radius: 5px; margin: 20px 0; }
+              .test-item { background: #2c3e50; padding: 15px; margin: 10px 0; border-radius: 5px; }
+          </style>
+      </head>
+      <body>
+          <div class=\"container\">
+              <h1>🚀 TESTE DE CONECTIVIDADE</h1>
+              <div class=\"success\">✅ NGINX FUNCIONANDO!</div>
+              
+              <div class=\"info\">
+                  <h3>📊 Informações do Servidor</h3>
+                  <p><strong>IP:</strong> 157.180.113.99</p>
+                  <p><strong>Porta:</strong> 8080</p>
+                  <p><strong>URL:</strong> http://157.180.113.99:8080</p>
+                  <p><strong>Container:</strong> Docker Swarm</p>
+              </div>
+              
+              <div class=\"test-item\">
+                  <h4>🔍 Diagnóstico</h4>
+                  <p>Se você está vendo esta página, o problema anterior foi resolvido!</p>
+                  <p>✅ Docker Swarm: Funcionando</p>
+                  <p>✅ Rede: Conectada</p>
+                  <p>✅ Porta 8080: Livre</p>
+                  <p>✅ Nginx: Rodando</p>
+              </div>
+              
+              <div class=\"test-item\">
+                  <h4>⚡ Próximos Passos</h4>
+                  <p>1. Confirme que está vendo esta página</p>
+                  <p>2. Teste outros serviços gradualmente</p>
+                  <p>3. Verifique logs no Portainer</p>
+              </div>
+              
+              <div style=\"margin-top: 30px; opacity: 0.8;\">
+                  <small>Teste realizado em $(date)</small>
+              </div>
+          </div>
+      </body>
+      </html>
+      EOF
+      echo '✅ Página de teste criada!'
+      nginx -g 'daemon off;'
+      "
+
+networks:
+  network_public:
+    external: true 

@@ -1,0 +1,176 @@
+version: '3.8'
+
+services:
+  # Traefik - Proxy Reverso
+  traefik:
+    image: traefik:v2.10
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=admin@elevroi.com
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    networks:
+      - network_public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`producao.elevroi.com`) && PathPrefix(`/traefik/`)"
+        - "traefik.http.routers.traefik.entrypoints=websecure"
+        - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+        - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$2y$$10$$7yqVBWxs4DtWXdP4r2QJgOZaWVVgWlnLKuRgNYPVgpTJ9jBfLaJ6m"
+        - "traefik.http.routers.traefik.middlewares=traefik-auth"
+        # Redirect HTTP to HTTPS
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+        - "traefik.http.routers.redirect-https.rule=hostregexp(`{host:.+}`)"
+        - "traefik.http.routers.redirect-https.entrypoints=web"
+        - "traefik.http.routers.redirect-https.middlewares=redirect-to-https"
+
+  # Frontend React
+  frontend:
+    image: menonsc/agentes-ia-frontend:latest
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_GOOGLE_GEMINI_API_KEY=${VITE_GOOGLE_GEMINI_API_KEY}
+      - VITE_EVOLUTION_API_URL=${VITE_EVOLUTION_API_URL}
+      - VITE_EVOLUTION_API_KEY=${VITE_EVOLUTION_API_KEY}
+      - VITE_EVOLUTION_INSTANCE_NAME=${VITE_EVOLUTION_INSTANCE_NAME}
+    depends_on:
+      - supabase
+      - traefik
+    networks:
+      - network_public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`producao.elevroi.com`)"
+        - "traefik.http.routers.frontend.entrypoints=websecure"
+        - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+        - "traefik.http.services.frontend.loadbalancer.server.port=80"
+        - "traefik.http.middlewares.frontend-cors.headers.accesscontrolalloworigin=*"
+        - "traefik.http.middlewares.frontend-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
+        - "traefik.http.middlewares.frontend-cors.headers.accesscontrolallowheaders=DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+        - "traefik.http.routers.frontend.middlewares=frontend-cors"
+
+  # WebSocket Server
+  websocket-server:
+    image: menonsc/agentes-ia-websocket:latest
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    depends_on:
+      - traefik
+    networks:
+      - network_public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.websocket.rule=Host(`producao.elevroi.com`) && PathPrefix(`/socket.io/`)"
+        - "traefik.http.routers.websocket.entrypoints=websecure"
+        - "traefik.http.routers.websocket.tls.certresolver=letsencrypt"
+        - "traefik.http.services.websocket.loadbalancer.server.port=3001"
+        - "traefik.http.middlewares.websocket-cors.headers.accesscontrolalloworigin=*"
+        - "traefik.http.middlewares.websocket-cors.headers.accesscontrolallowmethods=GET,POST,OPTIONS,PUT,DELETE"
+        - "traefik.http.middlewares.websocket-cors.headers.accesscontrolallowheaders=DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+        - "traefik.http.routers.websocket.middlewares=websocket-cors"
+
+  # Supabase (Banco de dados + API)
+  supabase:
+    image: supabase/postgres:15.1.0.117
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD:-your-super-secret-and-long-postgres-password}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    # Removendo labels do Traefik para PostgreSQL (não deve ser exposto diretamente)
+
+  # Redis (para cache e sessões)
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+
+  # Monitoramento com Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - traefik
+    networks:
+      - network_public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.prometheus.rule=Host(`producao.elevroi.com`) && PathPrefix(`/prometheus/`)"
+        - "traefik.http.routers.prometheus.entrypoints=websecure"
+        - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
+        - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+        - "traefik.http.middlewares.prometheus-auth.basicauth.users=admin:$$2y$$10$$7yqVBWxs4DtWXdP4r2QJgOZaWVVgWlnLKuRgNYPVgpTJ9jBfLaJ6m"
+        - "traefik.http.routers.prometheus.middlewares=prometheus-auth"
+
+  # Grafana para visualização
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - traefik
+    networks:
+      - network_public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.grafana.rule=Host(`producao.elevroi.com`) && PathPrefix(`/grafana/`)"
+        - "traefik.http.routers.grafana.entrypoints=websecure"
+        - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+        - "traefik.http.middlewares.grafana-auth.basicauth.users=admin:$$2y$$10$$7yqVBWxs4DtWXdP4r2QJgOZaWVVgWlnLKuRgNYPVgpTJ9jBfLaJ6m"
+        - "traefik.http.routers.grafana.middlewares=grafana-auth"
+
+volumes:
+  supabase_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  traefik_letsencrypt:
+    driver: local
+
+networks:
+  network_public:
+    external: true

@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # Frontend com Traefik routing
+  frontend:
+    image: nginx:alpine
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`producao.elevroi.com.br`) || Host(`157.180.113.99`)"
+        - "traefik.http.routers.frontend.entrypoints=web"
+        - "traefik.http.services.frontend.loadbalancer.server.port=80"
+        - "traefik.docker.network=network_public"
+
+  # PostgreSQL (sem proxy, só porta)
+  supabase:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD:-Senha@hack123}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Redis (sem proxy, só porta)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Grafana com Traefik routing
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_SERVER_DOMAIN=grafana.producao.elevroi.com.br
+      - GF_SERVER_ROOT_URL=http://grafana.producao.elevroi.com.br
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.grafana.rule=Host(`grafana.producao.elevroi.com.br`) || Host(`157.180.113.99`) && PathPrefix(`/grafana`)"
+        - "traefik.http.routers.grafana.entrypoints=web"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+        - "traefik.docker.network=network_public"
+
+  # Prometheus com Traefik routing
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.prometheus.rule=Host(`prometheus.producao.elevroi.com.br`) || Host(`157.180.113.99`) && PathPrefix(`/prometheus`)"
+        - "traefik.http.routers.prometheus.entrypoints=web"
+        - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+        - "traefik.docker.network=network_public"
+
+volumes:
+  supabase_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  network_public:
+    external: true 

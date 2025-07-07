@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  # Nginx PURO - sem comandos shell
+  nginx-puro:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+networks:
+  network_public:
+    external: true 

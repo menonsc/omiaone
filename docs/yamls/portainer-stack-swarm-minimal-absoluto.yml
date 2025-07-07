@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # Frontend NGINX PADRÃO - ZERO comandos
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # PostgreSQL
+  supabase:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD:-minhasenha123}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # WebSocket BÁSICO
+  websocket:
+    image: node:20-alpine
+    ports:
+      - "3002:3000"
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      echo 'const ws = require(\"ws\"); const wss = new ws.Server({port: 3000}); wss.on(\"connection\", w => { w.send(\"Hello WebSocket!\"); w.on(\"message\", m => w.send(\"Echo: \" + m)); }); console.log(\"WebSocket na porta 3000\");' > app.js
+      npm init -y
+      npm install ws
+      node app.js
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "4000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  supabase_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  network_public:
+    external: true 

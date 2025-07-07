@@ -1,0 +1,1 @@
+console.log('=== DEBUG YAMPI ==='); console.log('localStorage yampi-config:', localStorage.getItem('yampi-config')); console.log('sessionStorage yampi-config:', sessionStorage.getItem('yampi-config')); console.log('localStorage integrations-store:', localStorage.getItem('integrations-store')); console.log('=================');

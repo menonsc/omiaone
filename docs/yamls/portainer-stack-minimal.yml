@@ -1,0 +1,41 @@
+version: '3.5'
+
+services:
+  frontend:
+    image: nginx:alpine
+    environment:
+      - NODE_ENV=production
+    networks:
+      - network_public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`producao.elevroi.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+  supabase:
+    image: supabase/postgres:15.1.0.117
+    environment:
+      - POSTGRES_PASSWORD=${SUPABASE_DB_PASSWORD}
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+
+volumes:
+  supabase_data:
+  redis_data:
+
+networks:
+  network_public:
+    external: true 

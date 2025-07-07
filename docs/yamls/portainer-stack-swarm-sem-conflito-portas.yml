@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # Frontend na porta 8080 (não 80)
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # PostgreSQL na porta 5434 (não 5433)
+  supabase:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD:-Senha@hack123}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Redis na porta 6380 (não 6379)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Grafana na porta 4001 (não 4000)
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "4001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_SERVER_DOMAIN=157.180.113.99
+      - GF_SERVER_ROOT_URL=http://157.180.113.99:4001
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Prometheus na porta 9091 (não 9090)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  supabase_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  network_public:
+    external: true 

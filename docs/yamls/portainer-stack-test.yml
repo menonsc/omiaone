@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Frontend React - Teste
+  frontend:
+    image: menonsc/agentes-ia-frontend:latest
+    ports:
+      - "8080:80"
+      - "8443:443"
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-http://localhost:5432}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-test-key}
+      - VITE_GOOGLE_GEMINI_API_KEY=${VITE_GOOGLE_GEMINI_API_KEY:-test-key}
+      - VITE_EVOLUTION_API_URL=${VITE_EVOLUTION_API_URL:-http://localhost:8080}
+      - VITE_EVOLUTION_API_KEY=${VITE_EVOLUTION_API_KEY:-test-key}
+      - VITE_EVOLUTION_INSTANCE_NAME=${VITE_EVOLUTION_INSTANCE_NAME:-test}
+    networks:
+      - network_public
+
+  # WebSocket Server - Teste
+  websocket-server:
+    image: menonsc/agentes-ia-websocket:latest
+    ports:
+      - "3002:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    networks:
+      - network_public
+
+networks:
+  network_public:
+    external: true 

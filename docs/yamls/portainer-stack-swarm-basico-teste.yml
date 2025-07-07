@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Frontend BÁSICO
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+
+  # PostgreSQL BÁSICO
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: senha123
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - "5433:5432"
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+
+  # Grafana BÁSICO
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "4000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+
+networks:
+  network_public:
+    external: true 

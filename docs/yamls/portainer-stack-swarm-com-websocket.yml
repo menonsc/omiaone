@@ -1,0 +1,473 @@
+version: '3.8'
+
+services:
+  # Frontend React
+  frontend:
+    image: nginx:alpine
+    environment:
+      - NODE_ENV=production
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      cat > /usr/share/nginx/html/index.html << 'EOF'
+      <!DOCTYPE html>
+      <html lang=\"pt-BR\">
+      <head>
+          <meta charset=\"UTF-8\">
+          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+          <title>Agentes de IA - producao.elevroi.com.br</title>
+          <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; }
+              .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+              .header { text-align: center; margin-bottom: 3rem; }
+              .header h1 { font-size: 3rem; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+              .header p { font-size: 1.2rem; opacity: 0.9; }
+              .domain { background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 10px; text-align: center; margin-bottom: 2rem; }
+              .services { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem; }
+              .service-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 2rem; text-align: center; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.2); }
+              .service-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.2); }
+              .service-card h3 { font-size: 1.5rem; margin-bottom: 1rem; color: #fff; }
+              .service-card p { margin-bottom: 1.5rem; opacity: 0.8; line-height: 1.6; }
+              .btn { display: inline-block; padding: 0.8rem 2rem; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 25px; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.3); font-weight: 500; }
+              .btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+              .status { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+              .status-item { background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; text-align: center; }
+              .status-online { border-left: 4px solid #4CAF50; }
+              .footer { text-align: center; margin-top: 3rem; opacity: 0.7; }
+          </style>
+      </head>
+      <body>
+          <div class=\"container\">
+              <div class=\"header\">
+                  <h1>🤖 Agentes de IA</h1>
+                  <p>Sistema de automação inteligente com WhatsApp e IA</p>
+              </div>
+              
+              <div class=\"domain\">
+                  <h3>🌐 Domínio Configurado</h3>
+                  <p><strong>producao.elevroi.com.br</strong></p>
+              </div>
+              
+              <div class=\"services\">
+                  <div class=\"service-card\">
+                      <h3>📊 Grafana</h3>
+                      <p>Dashboards e métricas do sistema em tempo real</p>
+                      <a href=\"https://producao.elevroi.com.br:4000\" class=\"btn\" target=\"_blank\">Acessar Grafana</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🔍 Prometheus</h3>
+                      <p>Monitoramento e coleta de métricas dos serviços</p>
+                      <a href=\"https://producao.elevroi.com.br:9090\" class=\"btn\" target=\"_blank\">Acessar Prometheus</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🔌 WebSocket</h3>
+                      <p>Comunicação em tempo real para o sistema</p>
+                      <a href=\"http://producao.elevroi.com.br:3002\" class=\"btn\" target=\"_blank\">Testar WebSocket</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🗄️ PostgreSQL</h3>
+                      <p>Banco de dados principal do sistema</p>
+                      <a href=\"#\" class=\"btn\" onclick=\"alert('PostgreSQL rodando na porta 5433')\">Status: Online</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🚀 Redis</h3>
+                      <p>Cache e sessões do sistema</p>
+                      <a href=\"#\" class=\"btn\" onclick=\"alert('Redis rodando na porta 6379')\">Status: Online</a>
+                  </div>
+              </div>
+              
+              <div class=\"status\">
+                  <div class=\"status-item status-online\">
+                      <h4>🌐 Frontend</h4>
+                      <p>Online</p>
+                  </div>
+                  <div class=\"status-item status-online\">
+                      <h4>🗄️ Database</h4>
+                      <p>Conectado</p>
+                  </div>
+                  <div class=\"status-item status-online\">
+                      <h4>📊 Monitoring</h4>
+                      <p>Ativo</p>
+                  </div>
+                  <div class=\"status-item status-online\">
+                      <h4>🚀 Cache</h4>
+                      <p>Rodando</p>
+                  </div>
+                  <div class=\"status-item status-online\">
+                      <h4>🔌 WebSocket</h4>
+                      <p>Conectado</p>
+                  </div>
+              </div>
+              
+              <div class=\"footer\">
+                  <p>Agentes de IA v1.0 - Sistema de automação inteligente</p>
+                  <p>Deploy realizado com Docker Swarm + Portainer</p>
+                  <p>Domínio: <strong>producao.elevroi.com.br</strong></p>
+              </div>
+          </div>
+      </body>
+      </html>
+      EOF
+      nginx -g 'daemon off;'
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Banco de dados PostgreSQL
+  supabase:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - target: 5432
+        published: 5433
+        protocol: tcp
+        mode: host
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Redis para cache e sessões
+  redis:
+    image: redis:7-alpine
+    ports:
+      - target: 6379
+        published: 6379
+        protocol: tcp
+        mode: host
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+    command: redis-server --appendonly yes
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # WebSocket Server Simplificado
+  websocket-server:
+    image: node:20-alpine
+    ports:
+      - target: 3000
+        published: 3002
+        protocol: tcp
+        mode: host
+    networks:
+      - network_public
+    working_dir: /app
+    command: |
+      sh -c "
+      echo '🔌 Inicializando WebSocket Server...'
+      cat > package.json << 'EOF'
+      {
+        \"name\": \"websocket-server\",
+        \"version\": \"1.0.0\",
+        \"main\": \"server.js\",
+        \"dependencies\": {
+          \"ws\": \"^8.14.2\",
+          \"express\": \"^4.18.2\"
+        }
+      }
+      EOF
+      
+      cat > server.js << 'EOF'
+      const express = require('express');
+      const WebSocket = require('ws');
+      const http = require('http');
+      
+      const app = express();
+      const server = http.createServer(app);
+      const wss = new WebSocket.Server({ server });
+      
+      // Serve static test page
+      app.get('/', (req, res) => {
+        res.send(\`
+        <!DOCTYPE html>
+        <html lang=\"pt-BR\">
+        <head>
+          <title>WebSocket Test - Agentes de IA</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }
+            .container { max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; backdrop-filter: blur(10px); }
+            .status { padding: 15px; border-radius: 8px; margin: 15px 0; font-weight: bold; }
+            .connected { background: rgba(76, 175, 80, 0.3); border: 2px solid #4CAF50; }
+            .disconnected { background: rgba(244, 67, 54, 0.3); border: 2px solid #f44336; }
+            button { padding: 12px 24px; margin: 8px; cursor: pointer; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; transition: all 0.3s; }
+            .btn-connect { background: #4CAF50; color: white; }
+            .btn-disconnect { background: #f44336; color: white; }
+            .btn-send { background: #2196F3; color: white; }
+            button:hover { transform: scale(1.05); }
+            #messages { border: 2px solid rgba(255,255,255,0.3); height: 300px; overflow-y: auto; padding: 15px; margin: 15px 0; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; }
+            .message { margin: 5px 0; padding: 5px; border-left: 3px solid #2196F3; background: rgba(255,255,255,0.1); }
+            h1 { text-align: center; margin-bottom: 30px; }
+            .domain { text-align: center; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class=\"container\">
+            <h1>🔌 WebSocket Test - Agentes de IA</h1>
+            <div class=\"domain\">
+              <strong>Domínio: producao.elevroi.com.br</strong><br>
+              WebSocket URL: ws://producao.elevroi.com.br:3002
+            </div>
+            
+            <div id=\"status\" class=\"status disconnected\">❌ Desconectado</div>
+            
+            <div style=\"text-align: center; margin: 20px 0;\">
+              <button class=\"btn-connect\" onclick=\"connect()\">🔗 Conectar</button>
+              <button class=\"btn-disconnect\" onclick=\"disconnect()\">🔌 Desconectar</button>
+              <button class=\"btn-send\" onclick=\"sendMessage()\">📤 Enviar Teste</button>
+            </div>
+            
+            <div id=\"messages\"></div>
+            
+            <div style=\"text-align: center; margin-top: 20px; opacity: 0.8;\">
+              <small>🤖 Sistema de WebSocket dos Agentes de IA<br>
+              Teste de comunicação em tempo real</small>
+            </div>
+          </div>
+          
+          <script>
+            let ws = null;
+            const status = document.getElementById('status');
+            const messages = document.getElementById('messages');
+            
+            function connect() {
+              try {
+                ws = new WebSocket('ws://producao.elevroi.com.br:3002');
+                
+                ws.onopen = () => {
+                  status.innerHTML = '✅ Conectado ao WebSocket!';
+                  status.className = 'status connected';
+                  addMessage('✅ Conectado com sucesso!', 'success');
+                };
+                
+                ws.onmessage = (event) => {
+                  addMessage('📨 Recebido: ' + event.data, 'received');
+                };
+                
+                ws.onclose = () => {
+                  status.innerHTML = '❌ Desconectado';
+                  status.className = 'status disconnected';
+                  addMessage('❌ Conexão fechada', 'error');
+                };
+                
+                ws.onerror = (error) => {
+                  addMessage('🚨 Erro na conexão', 'error');
+                  console.error('WebSocket error:', error);
+                };
+              } catch (error) {
+                addMessage('🚨 Erro ao conectar: ' + error.message, 'error');
+              }
+            }
+            
+            function disconnect() {
+              if (ws) {
+                ws.close();
+                ws = null;
+              }
+            }
+            
+            function sendMessage() {
+              if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = 'Teste de mensagem - ' + new Date().toLocaleTimeString();
+                ws.send(message);
+                addMessage('📤 Enviado: ' + message, 'sent');
+              } else {
+                addMessage('❌ WebSocket não conectado. Clique em Conectar primeiro.', 'error');
+              }
+            }
+            
+            function addMessage(msg, type) {
+              const div = document.createElement('div');
+              div.className = 'message';
+              div.innerHTML = \`<strong>\${new Date().toLocaleTimeString()}</strong> - \${msg}\`;
+              messages.appendChild(div);
+              messages.scrollTop = messages.scrollHeight;
+            }
+            
+            // Auto-connect on page load
+            window.onload = () => {
+              addMessage('🌐 Página carregada. Clique em Conectar para testar.', 'info');
+            };
+          </script>
+        </body>
+        </html>
+        \`);
+      });
+      
+      // WebSocket connection handling
+      wss.on('connection', function connection(ws, req) {
+        console.log('🔌 Nova conexão WebSocket estabelecida de:', req.socket.remoteAddress);
+        
+        ws.send('🤖 Bem-vindo ao WebSocket dos Agentes de IA! Conexão estabelecida com sucesso.');
+        
+        ws.on('message', function incoming(message) {
+          const msg = message.toString();
+          console.log('📨 Mensagem recebida:', msg);
+          
+          // Echo message back to client
+          ws.send('🔄 Echo: ' + msg);
+          
+          // Broadcast to all connected clients
+          wss.clients.forEach(function each(client) {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+              client.send('📢 Broadcast: ' + msg);
+            }
+          });
+        });
+        
+        ws.on('close', function() {
+          console.log('❌ Conexão WebSocket fechada');
+        });
+        
+        ws.on('error', function(error) {
+          console.error('🚨 Erro WebSocket:', error);
+        });
+        
+        // Send periodic ping to keep connection alive
+        const pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.ping();
+          } else {
+            clearInterval(pingInterval);
+          }
+        }, 30000);
+      });
+      
+      const PORT = process.env.PORT || 3000;
+      server.listen(PORT, '0.0.0.0', () => {
+        console.log(\`🔌 Servidor WebSocket rodando na porta \${PORT}\`);
+        console.log(\`🌐 Teste em: http://producao.elevroi.com.br:3002\`);
+        console.log(\`📡 WebSocket URL: ws://producao.elevroi.com.br:3002\`);
+      });
+      EOF
+      
+      echo '📦 Instalando dependências...'
+      npm install --no-package-lock --quiet
+      echo '🚀 Iniciando servidor...'
+      node server.js
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Grafana para visualização
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - target: 3000
+        published: 4000
+        protocol: tcp
+        mode: host
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=producao.elevroi.com.br
+      - GF_SERVER_ROOT_URL=https://producao.elevroi.com.br:4000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - network_public
+    user: "472"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Prometheus simples
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - target: 9090
+        published: 9090
+        protocol: tcp
+        mode: host
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  supabase_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  network_public:
+    external: true 

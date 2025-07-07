@@ -1,0 +1,381 @@
+version: '3.8'
+
+services:
+  # Frontend com volume personalizado
+  frontend:
+    image: nginx:alpine
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+    networks:
+      - network_public
+    volumes:
+      - frontend_html:/usr/share/nginx/html
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Inicializador do HTML (roda uma vez e para)
+  html-setup:
+    image: alpine:latest
+    volumes:
+      - frontend_html:/html
+    command: |
+      sh -c "
+      echo '🌐 Criando HTML personalizado...'
+      cat > /html/index.html << 'EOF'
+      <!DOCTYPE html>
+      <html lang=\"pt-BR\">
+      <head>
+          <meta charset=\"UTF-8\">
+          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+          <title>Agentes de IA - 157.180.113.99</title>
+          <style>
+              body { 
+                  font-family: Arial, sans-serif; 
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                  color: white; 
+                  margin: 0; 
+                  padding: 20px; 
+                  min-height: 100vh; 
+              }
+              .container { 
+                  max-width: 1000px; 
+                  margin: 0 auto; 
+                  background: rgba(255,255,255,0.1); 
+                  padding: 30px; 
+                  border-radius: 15px; 
+                  text-align: center; 
+              }
+              h1 { 
+                  font-size: 2.5rem; 
+                  margin-bottom: 1rem; 
+                  text-shadow: 2px 2px 4px rgba(0,0,0,0.3); 
+              }
+              .info { 
+                  background: rgba(255,255,255,0.2); 
+                  padding: 15px; 
+                  border-radius: 10px; 
+                  margin: 20px 0; 
+              }
+              .services { 
+                  display: grid; 
+                  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+                  gap: 15px; 
+                  margin: 20px 0; 
+              }
+              .service { 
+                  background: rgba(255,255,255,0.15); 
+                  padding: 15px; 
+                  border-radius: 10px; 
+                  border: 1px solid rgba(255,255,255,0.3); 
+              }
+              .service h3 { 
+                  margin: 0 0 10px 0; 
+                  color: #fff; 
+              }
+              .service p { 
+                  margin: 5px 0; 
+                  opacity: 0.9; 
+                  font-size: 0.9rem; 
+              }
+              a { 
+                  color: #a8d8ff; 
+                  text-decoration: none; 
+                  padding: 5px 10px; 
+                  background: rgba(255,255,255,0.2); 
+                  border-radius: 5px; 
+                  display: inline-block; 
+                  margin-top: 5px; 
+              }
+              a:hover { 
+                  background: rgba(255,255,255,0.3); 
+              }
+              .status { 
+                  background: rgba(76, 175, 80, 0.3); 
+                  border: 2px solid #4CAF50; 
+                  padding: 10px; 
+                  border-radius: 8px; 
+                  margin: 20px 0; 
+              }
+          </style>
+      </head>
+      <body>
+          <div class=\"container\">
+              <h1>🤖 Agentes de IA</h1>
+              <p>Sistema de automação inteligente com WhatsApp e IA</p>
+              
+              <div class=\"info\">
+                  <h3>🌐 Servidor Configurado</h3>
+                  <p><strong>IP: 157.180.113.99</strong></p>
+                  <p><strong>Domínio: producao.elevroi.com.br</strong></p>
+              </div>
+              
+              <div class=\"status\">
+                  <h3>✅ Sistema Online</h3>
+                  <p>Todos os serviços funcionando corretamente!</p>
+              </div>
+              
+              <div class=\"services\">
+                  <div class=\"service\">
+                      <h3>📊 Grafana</h3>
+                      <p>Dashboards e métricas</p>
+                      <p>Porta: 4000</p>
+                      <a href=\"http://157.180.113.99:4000\" target=\"_blank\">Acessar</a>
+                  </div>
+                  
+                  <div class=\"service\">
+                      <h3>🔍 Prometheus</h3>
+                      <p>Monitoramento</p>
+                      <p>Porta: 9090</p>
+                      <a href=\"http://157.180.113.99:9090\" target=\"_blank\">Acessar</a>
+                  </div>
+                  
+                  <div class=\"service\">
+                      <h3>🔌 WebSocket</h3>
+                      <p>Comunicação em tempo real</p>
+                      <p>Porta: 3002</p>
+                      <a href=\"http://157.180.113.99:3002\" target=\"_blank\">Testar</a>
+                  </div>
+                  
+                  <div class=\"service\">
+                      <h3>🗄️ PostgreSQL</h3>
+                      <p>Banco de dados</p>
+                      <p>Porta: 5433</p>
+                      <a href=\"#\" onclick=\"alert('PostgreSQL: 157.180.113.99:5433')\">Status</a>
+                  </div>
+                  
+                  <div class=\"service\">
+                      <h3>🚀 Redis</h3>
+                      <p>Cache e sessões</p>
+                      <p>Porta: 6379</p>
+                      <a href=\"#\" onclick=\"alert('Redis: 157.180.113.99:6379')\">Status</a>
+                  </div>
+              </div>
+              
+              <div style=\"margin-top: 30px; opacity: 0.7; font-size: 0.9rem;\">
+                  <p>Agentes de IA v1.0 - Deploy realizado com Docker Swarm</p>
+                  <p>IP: <strong>157.180.113.99</strong> | Domínio: <strong>producao.elevroi.com.br</strong></p>
+              </div>
+          </div>
+      </body>
+      </html>
+      EOF
+      echo '✅ HTML criado com sucesso!'
+      echo '🎉 Setup concluído!'
+      "
+    deploy:
+      restart_policy:
+        condition: none
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Banco de dados PostgreSQL
+  supabase:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ${SUPABASE_DB_PASSWORD}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - target: 5432
+        published: 5433
+        protocol: tcp
+        mode: host
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Redis para cache e sessões
+  redis:
+    image: redis:7-alpine
+    ports:
+      - target: 6379
+        published: 6379
+        protocol: tcp
+        mode: host
+    volumes:
+      - redis_data:/data
+    networks:
+      - network_public
+    command: redis-server --appendonly yes
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # WebSocket Server
+  websocket-server:
+    image: node:20-alpine
+    ports:
+      - target: 3000
+        published: 3002
+        protocol: tcp
+        mode: host
+    networks:
+      - network_public
+    working_dir: /app
+    command: |
+      sh -c "
+      echo 'Iniciando WebSocket...'
+      cat > package.json << 'EOF'
+      {
+        \"name\": \"websocket\",
+        \"version\": \"1.0.0\",
+        \"dependencies\": {
+          \"ws\": \"^8.14.2\",
+          \"express\": \"^4.18.2\"
+        }
+      }
+      EOF
+      
+      cat > server.js << 'EOF'
+      const express = require('express');
+      const WebSocket = require('ws');
+      const http = require('http');
+      
+      const app = express();
+      const server = http.createServer(app);
+      const wss = new WebSocket.Server({ server });
+      
+      app.get('/', (req, res) => {
+        res.send('WebSocket Server - Teste em ws://157.180.113.99:3002');
+      });
+      
+      wss.on('connection', function connection(ws) {
+        console.log('Nova conexão WebSocket');
+        ws.send('Bem-vindo ao WebSocket dos Agentes de IA!');
+        
+        ws.on('message', function incoming(message) {
+          console.log('Mensagem:', message.toString());
+          ws.send('Echo: ' + message.toString());
+        });
+      });
+      
+      const PORT = 3000;
+      server.listen(PORT, '0.0.0.0', () => {
+        console.log('WebSocket Server rodando na porta ' + PORT);
+      });
+      EOF
+      
+      npm install --quiet
+      node server.js
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - target: 3000
+        published: 4000
+        protocol: tcp
+        mode: host
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=157.180.113.99
+      - GF_SERVER_ROOT_URL=http://157.180.113.99:4000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - network_public
+    user: "472"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - target: 9090
+        published: 9090
+        protocol: tcp
+        mode: host
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - network_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  frontend_html:
+    driver: local
+  supabase_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  network_public:
+    external: true 

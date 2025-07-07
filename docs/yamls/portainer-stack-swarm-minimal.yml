@@ -1,0 +1,288 @@
+version: '3.8'
+
+services:
+  # Frontend React
+  frontend:
+    image: nginx:alpine
+    environment:
+      - NODE_ENV=production
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      mkdir -p /usr/share/nginx/html &&
+      cat > /usr/share/nginx/html/index.html << 'EOF'
+      <!DOCTYPE html>
+      <html lang=\"pt-BR\">
+      <head>
+          <meta charset=\"UTF-8\">
+          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+          <title>Agentes de IA - Dashboard Mínimo</title>
+          <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; }
+              .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+              .header { text-align: center; margin-bottom: 3rem; }
+              .header h1 { font-size: 3rem; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+              .header p { font-size: 1.2rem; opacity: 0.9; }
+              .alert { background: rgba(255,193,7,0.2); border: 1px solid rgba(255,193,7,0.4); border-radius: 10px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; }
+              .services { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem; }
+              .service-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 2rem; text-align: center; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.2); }
+              .service-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.2); }
+              .service-card h3 { font-size: 1.5rem; margin-bottom: 1rem; color: #fff; }
+              .service-card p { margin-bottom: 1.5rem; opacity: 0.8; line-height: 1.6; }
+              .btn { display: inline-block; padding: 0.8rem 2rem; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 25px; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.3); font-weight: 500; }
+              .btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+              .btn-disabled { background: rgba(128,128,128,0.2); color: rgba(255,255,255,0.5); cursor: not-allowed; }
+              .status { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+              .status-item { background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; text-align: center; }
+              .status-online { border-left: 4px solid #4CAF50; }
+              .status-minimal { border-left: 4px solid #FF9800; }
+              .footer { text-align: center; margin-top: 3rem; opacity: 0.7; }
+          </style>
+      </head>
+      <body>
+          <div class=\"container\">
+              <div class=\"header\">
+                  <h1>🤖 Agentes de IA</h1>
+                  <p>Deploy Mínimo - Sem Conflitos de Porta</p>
+              </div>
+              
+              <div class=\"alert\">
+                  <h3>⚠️ Versão Mínima</h3>
+                  <p>Este deploy não inclui banco de dados nem WebSocket para evitar conflitos de porta.<br/>
+                  Ideal para testar o frontend e monitoramento sem interferir nos seus serviços existentes.</p>
+              </div>
+              
+              <div class=\"services\">
+                  <div class=\"service-card\">
+                      <h3>📊 Grafana</h3>
+                      <p>Dashboards e métricas do sistema</p>
+                      <a href=\":4001\" class=\"btn\" target=\"_blank\">Acessar Grafana</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🔍 Prometheus</h3>
+                      <p>Monitoramento básico</p>
+                      <a href=\":9091\" class=\"btn\" target=\"_blank\">Acessar Prometheus</a>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🚫 WebSocket</h3>
+                      <p>Não incluído (evita conflito porta 3001)</p>
+                      <span class=\"btn btn-disabled\">Não Ativo</span>
+                  </div>
+                  
+                  <div class=\"service-card\">
+                      <h3>🚫 PostgreSQL</h3>
+                      <p>Não incluído (evita conflito porta 5432)</p>
+                      <span class=\"btn btn-disabled\">Não Ativo</span>
+                  </div>
+              </div>
+              
+              <div class=\"status\">
+                  <div class=\"status-item status-online\">
+                      <h4>🌐 Frontend</h4>
+                      <p>Online</p>
+                  </div>
+                  <div class=\"status-item status-minimal\">
+                      <h4>🗄️ Database</h4>
+                      <p>Não incluído</p>
+                  </div>
+                  <div class=\"status-item status-online\">
+                      <h4>📊 Monitoring</h4>
+                      <p>Ativo</p>
+                  </div>
+                  <div class=\"status-item status-minimal\">
+                      <h4>🔌 WebSocket</h4>
+                      <p>Não incluído</p>
+                  </div>
+              </div>
+              
+              <div class=\"footer\">
+                  <p>Agentes de IA v1.0 - Deploy Mínimo</p>
+                  <p>Para evitar conflitos com: PostgreSQL (5432), Uptime Kuma (3001)</p>
+              </div>
+          </div>
+          
+          <script>
+              console.log('Agentes de IA - Deploy mínimo carregado com sucesso!');
+              console.log('Portas evitadas: 5432 (PostgreSQL), 3001 (Uptime Kuma)');
+          </script>
+      </body>
+      </html>
+      EOF
+      
+      cat > /etc/nginx/nginx.conf << 'EOF'
+      events {
+          worker_connections 1024;
+      }
+      http {
+          include /etc/nginx/mime.types;
+          default_type application/octet-stream;
+          
+          server {
+              listen 80;
+              server_name _;
+              root /usr/share/nginx/html;
+              index index.html;
+              
+              location / {
+                  try_files \$uri \$uri/ /index.html;
+              }
+              
+              location /health {
+                  return 200 'healthy';
+                  add_header Content-Type text/plain;
+              }
+          }
+      }
+      EOF
+      
+      nginx -g 'daemon off;'
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Nginx Reverse Proxy
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      cat > /etc/nginx/nginx.conf << 'EOF'
+      events {
+          worker_connections 1024;
+      }
+      http {
+          upstream frontend {
+              server frontend:80;
+          }
+          
+          server {
+              listen 80;
+              server_name _;
+              
+              location /health {
+                  return 200 'healthy - minimal stack';
+                  add_header Content-Type text/plain;
+              }
+              
+              location / {
+                  proxy_pass http://frontend;
+                  proxy_set_header Host \$$host;
+                  proxy_set_header X-Real-IP \$$remote_addr;
+                  proxy_set_header X-Forwarded-For \$$proxy_add_x_forwarded_for;
+              }
+          }
+      }
+      EOF
+      nginx -g 'daemon off;'
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Monitoramento com Prometheus (porta alternativa)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - target: 9090
+        published: 9091
+        protocol: tcp
+        mode: host
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - network_public
+    command: |
+      sh -c "
+      cat > /etc/prometheus/prometheus.yml << 'EOF'
+      global:
+        scrape_interval: 15s
+      scrape_configs:
+        - job_name: 'prometheus'
+          static_configs:
+            - targets: ['localhost:9090']
+        - job_name: 'frontend'
+          static_configs:
+            - targets: ['frontend:80']
+        - job_name: 'nginx'
+          static_configs:
+            - targets: ['nginx-proxy:80']
+      EOF
+      prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.enable-lifecycle
+      "
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Grafana para visualização (porta alternativa)
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - target: 3000
+        published: 4001
+        protocol: tcp
+        mode: host
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - network_public
+    user: "472"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  network_public:
+    external: true 

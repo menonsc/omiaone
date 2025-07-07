@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ElevROI - Sistema de Agentes de IA</title>
+    
+    <!-- Removido CSP restritivo que bloqueava WebSocket -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: data: blob: 'unsafe-inline'; connect-src 'self' http: https: wss: ws:;"> -->
+    
+    <!-- CSP mais permissivo para WebSocket -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self' http: https: data: blob: 'unsafe-inline';
+      connect-src 'self' http: https: wss: ws: *.ngrok.io *.ngrok-free.app *.elevroi.com.br *.supabase.co;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' http: https:;
+      style-src 'self' 'unsafe-inline' http: https:;
+      img-src 'self' data: blob: http: https:;
+      font-src 'self' data: http: https:;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    ">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#000000" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    
+    <!-- Preconnect para melhor performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Meta tags para SEO -->
+    <meta name="description" content="Sistema de Agentes de IA para automação de WhatsApp e integração com e-commerce" />
+    <meta name="keywords" content="WhatsApp, IA, automação, e-commerce, chatbot" />
+    <meta name="author" content="ElevROI" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="ElevROI - Sistema de Agentes de IA" />
+    <meta property="og:description" content="Sistema completo para automação de WhatsApp com IA" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://producao.elevroi.com.br" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ElevROI - Sistema de Agentes de IA" />
+    <meta name="twitter:description" content="Sistema completo para automação de WhatsApp com IA" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html> 

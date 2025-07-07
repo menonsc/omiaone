@@ -1,0 +1,24 @@
+# Configuração do Domínio - Thu Jul  3 17:43:19 -03 2025
+# URL do Ngrok: https://c627-189-28-50-218.ngrok-free.app
+# Host: c627-189-28-50-218.ngrok-free.app
+
+## Cloudflare DNS Configuration:
+Type: CNAME
+Name: producao
+Target: c627-189-28-50-218.ngrok-free.app
+Proxy: DNS only (cinza)
+TTL: Auto
+
+## URLs de Acesso:
+- Sistema: https://c627-189-28-50-218.ngrok-free.app
+- Domínio: https://producao.elevroi.com
+
+## Comandos Úteis:
+- Verificar DNS: nslookup producao.elevroi.com
+- Testar acesso: curl -I https://producao.elevroi.com
+- Logs do ngrok: curl http://localhost:4040/api/tunnels
+
+## ⚠️ IMPORTANTE:
+- Esta URL do ngrok muda a cada reinicialização
+- Para produção, use uma VPS com IP fixo
+- Configure SSL real para produção
