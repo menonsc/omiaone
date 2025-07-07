@@ -6,6 +6,7 @@ export interface Notification {
   title: string
   message: string
   duration?: number
+  chatId?: string // Para identificar notificações de chat específico
 }
 
 interface UIState {
@@ -17,6 +18,7 @@ interface UIState {
   setSidebarOpen: (open: boolean) => void
   addNotification: (notification: Omit<Notification, 'id'>) => void
   removeNotification: (id: string) => void
+  removeNotificationsByChat: (chatId: string) => void
   toggleDarkMode: () => void
 }
 
@@ -59,6 +61,11 @@ export const useUIStore = create<UIState>((set, get) => ({
   removeNotification: (id: string) => 
     set((state) => ({
       notifications: state.notifications.filter(n => n.id !== id)
+    })),
+    
+  removeNotificationsByChat: (chatId: string) => 
+    set((state) => ({
+      notifications: state.notifications.filter(n => n.chatId !== chatId)
     })),
   
   toggleDarkMode: () => {

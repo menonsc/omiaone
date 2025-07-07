@@ -106,7 +106,7 @@ export default function ConversationsList({
                 <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                   {chat.name}
                 </h3>
-                {chat.unreadCount && chat.unreadCount > 0 && (
+                {(chat.unreadCount || 0) > 0 && (
                   <span className="bg-green-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center flex-shrink-0">
                     {chat.unreadCount}
                   </span>

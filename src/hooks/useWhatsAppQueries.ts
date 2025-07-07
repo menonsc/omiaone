@@ -22,8 +22,8 @@ export const useInstances = () => {
       const response = await evolutionAPI.getInstanceInfo()
       return Array.isArray(response) ? response : [response]
     },
-    staleTime: 30 * 1000, // 30 segundos
-    refetchInterval: 10 * 1000, // 10 segundos
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchInterval: false, // Desabilitado - será gerenciado pelo realtime
   })
 }
 
@@ -32,8 +32,8 @@ export const useInstance = (instanceId: string) => {
     queryKey: whatsAppKeys.instance(instanceId),
     queryFn: () => evolutionAPI.getInstanceInfo(instanceId),
     enabled: !!instanceId,
-    staleTime: 10 * 1000, // 10 segundos
-    refetchInterval: 5 * 1000, // 5 segundos
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchInterval: false, // Desabilitado - será gerenciado pelo realtime
   })
 }
 
@@ -93,8 +93,8 @@ export const useChats = (instanceId: string) => {
     queryKey: whatsAppKeys.chats(instanceId),
     queryFn: () => evolutionAPI.fetchChats(instanceId),
     enabled: !!instanceId,
-    staleTime: 15 * 1000, // 15 segundos
-    refetchInterval: 10 * 1000, // 10 segundos
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchInterval: false, // Desabilitado - será gerenciado pelo realtime
   })
 }
 
@@ -105,8 +105,8 @@ export const useChatsFromContacts = (instanceId: string) => {
     queryKey: [...whatsAppKeys.chats(instanceId), 'contacts'],
     queryFn: () => fetchChatsFromContacts(instanceId),
     enabled: !!instanceId,
-    staleTime: 30 * 1000, // 30 segundos
-    refetchInterval: 15 * 1000, // 15 segundos
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchInterval: false, // Desabilitado - será gerenciado pelo realtime
   })
 }
 
@@ -116,8 +116,8 @@ export const useWhatsAppMessages = (instanceId: string, chatId: string) => {
     queryKey: whatsAppKeys.messages(instanceId, chatId),
     queryFn: () => evolutionAPI.fetchMessages(instanceId, chatId),
     enabled: !!instanceId && !!chatId,
-    staleTime: 5 * 1000, // 5 segundos
-    refetchInterval: 3 * 1000, // 3 segundos
+    staleTime: 30 * 1000, // 30 segundos
+    refetchInterval: false, // Desabilitado - será gerenciado pelo realtime
   })
 }
 
@@ -153,8 +153,8 @@ export const useContacts = (instanceId: string) => {
     queryKey: whatsAppKeys.contacts(instanceId),
     queryFn: () => evolutionAPI.fetchContacts(instanceId),
     enabled: !!instanceId,
-    staleTime: 60 * 1000, // 1 minuto
-    refetchInterval: 30 * 1000, // 30 segundos
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    refetchInterval: false, // Desabilitado - contatos mudam raramente
   })
 }
 
@@ -165,7 +165,7 @@ export const useQRCode = (instanceId: string) => {
     queryFn: () => evolutionAPI.getQRCode(instanceId),
     enabled: !!instanceId,
     staleTime: 5 * 1000, // 5 segundos
-    refetchInterval: 3 * 1000, // 3 segundos
+    refetchInterval: 3 * 1000, // 3 segundos - apenas para QR Code
     retry: (failureCount, error: any) => {
       // Para de tentar se a instância estiver conectada
       if (error?.message?.includes('connected')) {
@@ -182,7 +182,7 @@ export const useConnectionStatus = (instanceId: string) => {
     queryKey: [...whatsAppKeys.instance(instanceId), 'status'],
     queryFn: () => evolutionAPI.getInstanceStatus(instanceId),
     enabled: !!instanceId,
-    staleTime: 2 * 1000, // 2 segundos
-    refetchInterval: 2 * 1000, // 2 segundos
+    staleTime: 30 * 1000, // 30 segundos
+    refetchInterval: false, // Desabilitado - será gerenciado pelo realtime
   })
 } 

@@ -88,11 +88,28 @@ export const useRealTimeConnection = (options: RealTimeConnectionOptions = {}) =
           message.timestamp
         )
 
-        // Add notification for new message
+        // 🔔 ADICIONAR NOTIFICAÇÃO para TODAS as mensagens recebidas (contatos antigos e novos)
+        const senderName = (() => {
+          if (message.from.includes('@s.whatsapp.net')) {
+            // Contato individual - extrair número
+            const phoneNumber = message.from.split('@')[0]
+            return phoneNumber
+          } else if (message.from.includes('@g.us')) {
+            // Grupo
+            return 'Grupo'
+          } else {
+            // Formato não reconhecido
+            return message.from
+          }
+        })()
+        
+        console.log('🔔 Adicionando notificação para mensagem de:', senderName, 'chatId:', message.from)
+        
         addNotification({
           type: 'success',
           title: '💬 Nova mensagem!',
-          message: `Nova mensagem de ${message.from}: ${message.message.substring(0, 50)}${message.message.length > 50 ? '...' : ''}`
+          message: `Nova mensagem de ${senderName}: ${message.message.substring(0, 50)}${message.message.length > 50 ? '...' : ''}`,
+          chatId: message.from // ✅ ADICIONAR chatId para poder limpar depois
         })
 
         // Auto-reply with AI if configured
