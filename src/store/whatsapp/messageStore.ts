@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { evolutionAPI, type WhatsAppMessage, type WhatsAppContact } from '../../services/evolutionAPI'
 import { useInstanceStore } from './instanceStore'
 import { useUIStore } from '../uiStore'
+import { whatsappConversationsService } from '../../services/whatsappConversationsService'
+import { supabase } from '../../services/supabase'
 
 export interface WhatsAppChat {
   id: string
@@ -87,6 +89,18 @@ const useDynamicChatsStore = create<DynamicChatsState>()(
   )
 )
 
+// Função utilitária para obter dados do usuário autenticado
+const getCurrentUserData = async (): Promise<{ userId: string | null; instanceId: string | null }> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    const instanceId = useInstanceStore.getState().currentInstance?.id || null
+    return { userId: user?.id || null, instanceId }
+  } catch (error) {
+    console.error('❌ Erro ao obter dados do usuário:', error)
+    return { userId: null, instanceId: null }
+  }
+}
+
 export const useMessageStore = create<MessageState>((set, get) => ({
   chats: [],
   currentChat: null,
@@ -111,8 +125,26 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       console.error('❌ No instance provided for fetchChats')
       return
     }
+
+    // 🎯 OBTER dados do usuário autenticado
+    const { userId, instanceId: currentInstanceId } = await getCurrentUserData()
+    if (!userId || !currentInstanceId) {
+      console.warn('⚠️ Usuário não autenticado ou instância não selecionada')
+    }
     
-    // 🚀 PRESERVAR chats criados dinamicamente (novos usuários)
+    // 🏦 CARREGAR conversas persistidas do BANCO DE DADOS
+    let databaseChats: WhatsAppChat[] = []
+    if (userId && currentInstanceId) {
+      try {
+        console.log('📡 Carregando conversas do banco de dados...')
+        databaseChats = await whatsappConversationsService.getUserConversations(userId, currentInstanceId)
+        console.log('✅ Conversas carregadas do banco:', databaseChats.length, 'conversas')
+      } catch (error) {
+        console.error('❌ Erro ao carregar conversas do banco:', error)
+      }
+    }
+    
+    // 🚀 PRESERVAR chats criados dinamicamente (localStorage + estado atual + banco)
     // Carregar do localStorage E do estado atual
     const persistedDynamicChats = useDynamicChatsStore.getState().getDynamicChats()
     const currentChats = get().chats
@@ -125,15 +157,25 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       return isDynamic
     })
     
-    // Combinar chats dinâmicos do localStorage com os do estado atual
+    // Combinar chats dinâmicos de todas as fontes
     const allDynamicChats = new Map<string, WhatsAppChat>()
     
-    // Adicionar do localStorage primeiro
-    persistedDynamicChats.forEach(chat => {
-      allDynamicChats.set(chat.id, chat)
+    // 1. Adicionar do banco de dados primeiro (mais confiável)
+    databaseChats.forEach(chat => {
+      if (chat.isWebSocketCreated) {
+        allDynamicChats.set(chat.id, chat)
+      }
     })
     
-    // Adicionar/atualizar com os do estado atual (mais recentes)
+    // 2. Adicionar do localStorage (pode ter dados mais recentes)
+    persistedDynamicChats.forEach(chat => {
+      const existing = allDynamicChats.get(chat.id)
+      if (!existing || new Date(chat.lastMessageTime || 0) > new Date(existing.lastMessageTime || 0)) {
+        allDynamicChats.set(chat.id, chat)
+      }
+    })
+    
+    // 3. Adicionar/atualizar com os do estado atual (mais recentes ainda)
     currentDynamicChats.forEach(chat => {
       const existing = allDynamicChats.get(chat.id)
       if (!existing || new Date(chat.lastMessageTime || 0) > new Date(existing.lastMessageTime || 0)) {
@@ -143,11 +185,12 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     
     const dynamicChats = Array.from(allDynamicChats.values())
     
-    console.log('🔄 Preservando', dynamicChats.length, 'chats criados dinamicamente (localStorage + estado):', dynamicChats.map(c => ({ 
+    console.log('🔄 Preservando', dynamicChats.length, 'chats criados dinamicamente (banco + localStorage + estado):', dynamicChats.map(c => ({ 
       name: c.name, 
       phone: c.phone, 
       isWebSocketCreated: c.isWebSocketCreated,
-      source: persistedDynamicChats.some(p => p.id === c.id) ? 'localStorage' : 'estado'
+      source: databaseChats.some(d => d.id === c.id) ? 'banco' : 
+              persistedDynamicChats.some(p => p.id === c.id) ? 'localStorage' : 'estado'
     })))
     
     try {
@@ -233,6 +276,17 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       console.log('💾 Setting combined chats in store:', combinedChats.length, 'total chats')
       set({ chats: combinedChats })
       
+      // 🏦 SINCRONIZAR chats com banco de dados (não-bloqueante)
+      if (userId && currentInstanceId) {
+        try {
+          console.log('🔄 Sincronizando', combinedChats.length, 'chats com banco de dados...')
+          await whatsappConversationsService.saveConversations(combinedChats, userId, currentInstanceId)
+          console.log('✅ Chats sincronizados com banco de dados')
+        } catch (error) {
+          console.error('❌ Erro ao sincronizar chats com banco (não crítico):', error)
+        }
+      }
+      
       // Se não conseguiu chats da API e não tem chats dinâmicos, tenta buscar contatos
       if (chatsFromAPI.length === 0 && dynamicChats.length === 0) {
         console.log('🔄 No chats found from API or dynamic, trying to fetch contacts with messages...')
@@ -271,8 +325,22 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       return
     }
     
-    // 🚀 PRESERVAR chats criados dinamicamente (novos usuários)
-    // Carregar do localStorage E do estado atual
+    // 🎯 OBTER dados do usuário autenticado
+    const { userId, instanceId: currentInstanceId } = await getCurrentUserData()
+    
+    // 🏦 CARREGAR conversas persistidas do BANCO DE DADOS
+    let databaseChats: WhatsAppChat[] = []
+    if (userId && currentInstanceId) {
+      try {
+        console.log('📡 Carregando conversas do banco de dados para fetchChatsFromContacts...')
+        databaseChats = await whatsappConversationsService.getUserConversations(userId, currentInstanceId)
+        console.log('✅ Conversas carregadas do banco:', databaseChats.length, 'conversas')
+      } catch (error) {
+        console.error('❌ Erro ao carregar conversas do banco:', error)
+      }
+    }
+    
+    // 🚀 PRESERVAR chats criados dinamicamente (banco + localStorage + estado atual)
     const persistedDynamicChats = useDynamicChatsStore.getState().getDynamicChats()
     const currentChats = get().chats
     const currentDynamicChats = currentChats.filter(chat => {
@@ -284,15 +352,25 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       return isDynamic
     })
     
-    // Combinar chats dinâmicos do localStorage com os do estado atual
+    // Combinar chats dinâmicos de todas as fontes
     const allDynamicChats = new Map<string, WhatsAppChat>()
     
-    // Adicionar do localStorage primeiro
-    persistedDynamicChats.forEach(chat => {
-      allDynamicChats.set(chat.id, chat)
+    // 1. Adicionar do banco de dados primeiro (mais confiável)
+    databaseChats.forEach(chat => {
+      if (chat.isWebSocketCreated) {
+        allDynamicChats.set(chat.id, chat)
+      }
     })
     
-    // Adicionar/atualizar com os do estado atual (mais recentes)
+    // 2. Adicionar do localStorage (pode ter dados mais recentes)
+    persistedDynamicChats.forEach(chat => {
+      const existing = allDynamicChats.get(chat.id)
+      if (!existing || new Date(chat.lastMessageTime || 0) > new Date(existing.lastMessageTime || 0)) {
+        allDynamicChats.set(chat.id, chat)
+      }
+    })
+    
+    // 3. Adicionar/atualizar com os do estado atual (mais recentes ainda)
     currentDynamicChats.forEach(chat => {
       const existing = allDynamicChats.get(chat.id)
       if (!existing || new Date(chat.lastMessageTime || 0) > new Date(existing.lastMessageTime || 0)) {
@@ -302,11 +380,12 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     
     const dynamicChats = Array.from(allDynamicChats.values())
     
-    console.log('🔄 Preservando', dynamicChats.length, 'chats dinâmicos em fetchChatsFromContacts (localStorage + estado):', dynamicChats.map(c => ({ 
+    console.log('🔄 Preservando', dynamicChats.length, 'chats dinâmicos em fetchChatsFromContacts (banco + localStorage + estado):', dynamicChats.map(c => ({ 
       name: c.name, 
       phone: c.phone, 
       isWebSocketCreated: c.isWebSocketCreated,
-      source: persistedDynamicChats.some(p => p.id === c.id) ? 'localStorage' : 'estado'
+      source: databaseChats.some(d => d.id === c.id) ? 'banco' : 
+              persistedDynamicChats.some(p => p.id === c.id) ? 'localStorage' : 'estado'
     })))
     
     try {
@@ -449,6 +528,17 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       
       console.log(`💾 Setting ${combinedChats.length} conversations combined (${chatsFromContacts.length} from contacts + ${dynamicChats.length} dynamic)`)
       set({ chats: combinedChats })
+      
+      // 🏦 SINCRONIZAR chats com banco de dados (não-bloqueante)
+      if (userId && currentInstanceId) {
+        try {
+          console.log('🔄 Sincronizando', combinedChats.length, 'chats com banco de dados (fetchChatsFromContacts)...')
+          await whatsappConversationsService.saveConversations(combinedChats, userId, currentInstanceId)
+          console.log('✅ Chats sincronizados com banco de dados')
+        } catch (error) {
+          console.error('❌ Erro ao sincronizar chats com banco (não crítico):', error)
+        }
+      }
       
     } catch (error) {
       console.error('❌ Error fetching contacts as chats:', error)
@@ -597,10 +687,20 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       
       set({ chats: updatedChats })
       
-      // 🔄 Atualizar no localStorage se for chat dinâmico
+      // 🔄 Atualizar no localStorage E banco de dados se for chat dinâmico
       if (chat.isWebSocketCreated) {
         useDynamicChatsStore.getState().updateDynamicChat(chat.id, {
           unreadCount: 0
+        })
+        
+        // 🏦 Atualizar contador de não lidas no banco de dados (não-bloqueante)
+        getCurrentUserData().then(({ userId, instanceId }) => {
+          if (userId && instanceId) {
+            whatsappConversationsService.updateUnreadCount(chat.id, userId, instanceId, 0)
+              .catch(error => {
+                console.error('❌ Erro ao marcar como lida no banco (não crítico):', error)
+              })
+          }
         })
       }
       
@@ -678,13 +778,30 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       
       set({ chats: updatedChats })
       
-      // 🔄 Se é um chat dinâmico, atualizar no localStorage também
+      // 🔄 Se é um chat dinâmico, atualizar no localStorage E banco de dados
       const updatedChat = updatedChats.find(chat => chat.id === chatId)
       if (updatedChat && updatedChat.isWebSocketCreated) {
+        // Atualizar localStorage
         useDynamicChatsStore.getState().updateDynamicChat(chatId, {
           lastMessage: message,
           lastMessageTime: timestamp,
           unreadCount: updatedChat.unreadCount
+        })
+        
+        // 🏦 Atualizar banco de dados (não-bloqueante)
+        getCurrentUserData().then(({ userId, instanceId }) => {
+          if (userId && instanceId) {
+            whatsappConversationsService.updateLastMessage(
+              chatId, 
+              userId, 
+              instanceId, 
+              message, 
+              timestamp, 
+              updatedChat.unreadCount
+            ).catch(error => {
+              console.error('❌ Erro ao atualizar mensagem no banco (não crítico):', error)
+            })
+          }
         })
       }
     } else {
@@ -746,8 +863,18 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       console.log('💾 Atualizando lista de chats com novo usuário. Total de chats:', updatedChats.length)
       set({ chats: updatedChats })
       
-      // 🚀 SALVAR chat dinâmico no localStorage para persistir após refresh
+      // 🚀 SALVAR chat dinâmico no localStorage E banco de dados para persistir após refresh
       useDynamicChatsStore.getState().addDynamicChat(newChat)
+      
+      // 🏦 Salvar no banco de dados (não-bloqueante)
+      getCurrentUserData().then(({ userId, instanceId }) => {
+        if (userId && instanceId) {
+          whatsappConversationsService.saveConversation(newChat, userId, instanceId)
+            .catch(error => {
+              console.error('❌ Erro ao salvar nova conversa no banco (não crítico):', error)
+            })
+        }
+      })
       
       // Opcional: Tentar buscar informações mais detalhadas do contato via API (sem bloquear a UI)
       setTimeout(async () => {

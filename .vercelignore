@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+.pnpm-debug.log*
+
+# Testing
+test-results/
+playwright-report/
+coverage/
+
+# Environment and config
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+supabase/.branches
+supabase/.temp
+supabase/logs
+
+# Development
+.vscode/
+.DS_Store
+*.log
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Scripts
+*.sh
+*.cjs
+debug-*.js
+test-*.js
+configurar-*.cjs
+
+# SSL
+ssl/ 
