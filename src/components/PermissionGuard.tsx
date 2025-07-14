@@ -199,6 +199,101 @@ interface PermissionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEle
   children: React.ReactNode
 }
 
+// ====================
+// COMPONENTES ESPECÍFICOS PARA FLOW BUILDER
+// ====================
+
+// Interface para componentes do Flow Builder
+interface FlowBuilderGuardProps {
+  action: 'create' | 'read' | 'update' | 'delete' | 'execute' | 'manage_templates' | 'manage_triggers' | 'export' | 'import' | 'configure'
+  userId?: string
+  fallback?: React.ReactNode
+  children: React.ReactNode
+}
+
+// Componente de proteção específico para Flow Builder
+export const FlowBuilderGuard: React.FC<FlowBuilderGuardProps> = ({
+  action,
+  userId,
+  fallback = (
+    <div className="text-center p-8">
+      <div className="text-red-500 text-lg font-semibold mb-2">
+        Acesso Negado ao Flow Builder
+      </div>
+      <p className="text-gray-600">
+        Você não tem permissão para {action} no Flow Builder.
+      </p>
+    </div>
+  ),
+  children
+}) => {
+  return (
+    <PermissionGuard
+      resource="flow_builder"
+      action={action}
+      userId={userId}
+      fallback={fallback}
+    >
+      {children}
+    </PermissionGuard>
+  )
+}
+
+// Componente para verificar se usuário pode criar flows
+export const CanCreateFlow: React.FC<Omit<FlowBuilderGuardProps, 'action'> & { action?: never }> = (props) => (
+  <FlowBuilderGuard action="create" {...props} />
+)
+
+// Componente para verificar se usuário pode editar flows
+export const CanEditFlow: React.FC<Omit<FlowBuilderGuardProps, 'action'> & { action?: never }> = (props) => (
+  <FlowBuilderGuard action="update" {...props} />
+)
+
+// Componente para verificar se usuário pode executar flows
+export const CanExecuteFlow: React.FC<Omit<FlowBuilderGuardProps, 'action'> & { action?: never }> = (props) => (
+  <FlowBuilderGuard action="execute" {...props} />
+)
+
+// Componente para verificar se usuário pode gerenciar templates
+export const CanManageTemplates: React.FC<Omit<FlowBuilderGuardProps, 'action'> & { action?: never }> = (props) => (
+  <FlowBuilderGuard action="manage_templates" {...props} />
+)
+
+// Componente para verificar se usuário pode gerenciar triggers
+export const CanManageTriggers: React.FC<Omit<FlowBuilderGuardProps, 'action'> & { action?: never }> = (props) => (
+  <FlowBuilderGuard action="manage_triggers" {...props} />
+)
+
+// Componente para verificar se usuário pode exportar/importar flows
+export const CanExportImportFlows: React.FC<Omit<FlowBuilderGuardProps, 'action'> & { action?: never }> = (props) => (
+  <FlowBuilderGuard action="export" {...props} />
+)
+
+// Componente para verificar se usuário pode configurar o Flow Builder
+export const CanConfigureFlowBuilder: React.FC<Omit<FlowBuilderGuardProps, 'action'> & { action?: never }> = (props) => (
+  <FlowBuilderGuard action="configure" {...props} />
+)
+
+// HOC para proteger componentes do Flow Builder
+export function withFlowBuilderPermission<P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  action: 'create' | 'read' | 'update' | 'delete' | 'execute' | 'manage_templates' | 'manage_triggers' | 'export' | 'import' | 'configure',
+  fallback?: React.ReactNode
+) {
+  const FlowBuilderWrappedComponent = (props: P) => (
+    <FlowBuilderGuard
+      action={action}
+      fallback={fallback}
+    >
+      <WrappedComponent {...props} />
+    </FlowBuilderGuard>
+  )
+
+  FlowBuilderWrappedComponent.displayName = `withFlowBuilderPermission(${WrappedComponent.displayName || WrappedComponent.name})`
+  
+  return FlowBuilderWrappedComponent
+}
+
 export const PermissionButton: React.FC<PermissionButtonProps> = ({
   resource,
   action,

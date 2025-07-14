@@ -262,13 +262,14 @@ class EvolutionAPIService {
   }
 
   // Configure webhook for real-time updates
-  async configureRealTimeWebhook(instanceName: string, baseUrl: string) {
+  async configureRealTimeWebhook(instanceName: string, baseUrl: string = 'http://localhost:3001') {
     const webhookUrl = `${baseUrl}/api/webhooks/whatsapp/${instanceName}`
     
     try {
       console.log('🔧 Configurando webhook para tempo real:', webhookUrl)
       return await this.setWebhook(instanceName, webhookUrl, [
         'MESSAGE_UPSERT',
+        'MESSAGES_UPSERT',
         'CONNECTION_UPDATE', 
         'CALL',
         'MESSAGE_UPDATE',

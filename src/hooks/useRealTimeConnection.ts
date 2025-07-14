@@ -5,6 +5,7 @@ import { useMessageStore } from '../store/whatsapp/messageStore'
 import { useInstanceStore } from '../store/whatsapp/instanceStore'
 import { useAIStore } from '../store/whatsapp/aiStore'
 import { useUIStore } from '../store/uiStore'
+import { triggerWhatsAppEvent } from '../services/webhookService'
 
 interface RealTimeConnectionOptions {
   instanceId?: string
@@ -87,6 +88,25 @@ export const useRealTimeConnection = (options: RealTimeConnectionOptions = {}) =
           message.message,
           message.timestamp
         )
+
+        // 🔔 DISPARAR WEBHOOKS DO USUÁRIO
+        console.log('🔔 Disparando webhooks para mensagem recebida')
+        try {
+          triggerWhatsAppEvent('whatsapp_message', {
+            instanceName: instance,
+            messageId: data.key?.id,
+            from: message.from,
+            to: instance,
+            message: message.message,
+            timestamp: message.timestamp,
+            type: 'text',
+            isGroup: message.from.includes('@g.us'),
+            pushName: data.pushName || null,
+            originalData: data
+          })
+        } catch (error) {
+          console.error('❌ Erro ao disparar webhooks:', error)
+        }
 
         // 🔔 ADICIONAR NOTIFICAÇÃO para TODAS as mensagens recebidas (contatos antigos e novos)
         const senderName = (() => {

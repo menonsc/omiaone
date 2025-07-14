@@ -40,6 +40,8 @@ const SessionManagementPage = lazy(() => import('./pages/SessionManagementPage')
 const RoleManagement = lazy(() => import('./pages/RoleManagement'))
 const UserManagement = lazy(() => import('./pages/UserManagement'))
 const SystemStatus = lazy(() => import('./pages/SystemStatus'))
+const FlowBuilder = lazy(() => import('./pages/FlowBuilder'))
+const Flows = lazy(() => import('./pages/Flows'))
 
 // Página de acesso negado
 const UnauthorizedPage = () => (
@@ -279,6 +281,37 @@ function App() {
               <AuthProtectedRoute>
                 <FeedbackDemo />
               </AuthProtectedRoute>
+            } />
+
+            {/* Flows - Listagem de fluxos */}
+            <Route path="flows" element={
+              <PermissionProtectedRoute 
+                resource="automation" 
+                action="read"
+                unauthorizedComponent={<UnauthorizedPage />}
+              >
+                <Flows />
+              </PermissionProtectedRoute>
+            } />
+            
+            {/* Flow Builder - Automação */}
+            <Route path="flow-builder" element={
+              <PermissionProtectedRoute 
+                resource="automation" 
+                action="create"
+                unauthorizedComponent={<UnauthorizedPage />}
+              >
+                <FlowBuilder />
+              </PermissionProtectedRoute>
+            } />
+            <Route path="flow-builder/:flowId" element={
+              <PermissionProtectedRoute 
+                resource="automation" 
+                action="update"
+                unauthorizedComponent={<UnauthorizedPage />}
+              >
+                <FlowBuilder />
+              </PermissionProtectedRoute>
             } />
           </Route>
           

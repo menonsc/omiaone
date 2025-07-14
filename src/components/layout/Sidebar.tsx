@@ -77,6 +77,11 @@ const mainNavigation: MainNavigationItem[] = [
     icon: EmailMarketingIcon,
   },
   {
+    name: 'Fluxos',
+    href: '/flows',
+    icon: FinanceiroIcon, // Usar ícone temporário até criar um específico
+  },
+  {
     name: 'Configurações',
     icon: ConfiguracoesIcon,
     accordion: true,

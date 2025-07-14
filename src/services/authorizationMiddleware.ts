@@ -387,6 +387,105 @@ class AuthorizationMiddleware {
       clearUserContext
     }
   }
+
+  // ====================
+  // MÉTODOS ESPECÍFICOS PARA FLOW BUILDER
+  // ====================
+
+  // Verificar permissão específica do Flow Builder
+  async checkFlowBuilderPermission(
+    userId: string,
+    action: 'create' | 'read' | 'update' | 'delete' | 'execute' | 'manage_templates' | 'manage_triggers' | 'export' | 'import' | 'configure'
+  ): Promise<boolean> {
+    return this.authorize({
+      resource: 'flow_builder',
+      action,
+      rateLimit: RATE_LIMITS.GENERAL
+    }).then(result => result.authorized)
+  }
+
+  // Verificar se usuário pode criar flows
+  async canCreateFlow(userId: string): Promise<boolean> {
+    return this.checkFlowBuilderPermission(userId, 'create')
+  }
+
+  // Verificar se usuário pode editar flows
+  async canEditFlow(userId: string): Promise<boolean> {
+    return this.checkFlowBuilderPermission(userId, 'update')
+  }
+
+  // Verificar se usuário pode executar flows
+  async canExecuteFlow(userId: string): Promise<boolean> {
+    return this.checkFlowBuilderPermission(userId, 'execute')
+  }
+
+  // Verificar se usuário pode gerenciar templates
+  async canManageTemplates(userId: string): Promise<boolean> {
+    return this.checkFlowBuilderPermission(userId, 'manage_templates')
+  }
+
+  // Verificar se usuário pode gerenciar triggers
+  async canManageTriggers(userId: string): Promise<boolean> {
+    return this.checkFlowBuilderPermission(userId, 'manage_triggers')
+  }
+
+  // Verificar se usuário pode exportar/importar flows
+  async canExportImportFlows(userId: string): Promise<boolean> {
+    return this.checkFlowBuilderPermission(userId, 'export')
+  }
+
+  // Verificar se usuário pode configurar o Flow Builder
+  async canConfigureFlowBuilder(userId: string): Promise<boolean> {
+    return this.checkFlowBuilderPermission(userId, 'configure')
+  }
+
+  // Verificar múltiplas permissões do Flow Builder
+  async checkFlowBuilderPermissions(
+    userId: string,
+    actions: Array<'create' | 'read' | 'update' | 'delete' | 'execute' | 'manage_templates' | 'manage_triggers' | 'export' | 'import' | 'configure'>
+  ): Promise<Record<string, boolean>> {
+    const results: Record<string, boolean> = {}
+    
+    const promises = actions.map(async (action) => {
+      const granted = await this.checkFlowBuilderPermission(userId, action)
+      results[action] = granted
+      return { action, granted }
+    })
+
+    await Promise.all(promises)
+    return results
+  }
+
+  // Obter contexto específico do Flow Builder
+  async getFlowBuilderContext(userId: string): Promise<{
+    canCreate: boolean
+    canEdit: boolean
+    canExecute: boolean
+    canManageTemplates: boolean
+    canManageTriggers: boolean
+    canExportImport: boolean
+    canConfigure: boolean
+    userRole: string
+  } | null> {
+    const context = await this.getUserContext(userId)
+    if (!context) return null
+
+    const permissions = await this.checkFlowBuilderPermissions(userId, [
+      'create', 'update', 'execute', 'manage_templates', 
+      'manage_triggers', 'export', 'configure'
+    ])
+
+    return {
+      canCreate: permissions.create || false,
+      canEdit: permissions.update || false,
+      canExecute: permissions.execute || false,
+      canManageTemplates: permissions.manage_templates || false,
+      canManageTriggers: permissions.manage_triggers || false,
+      canExportImport: permissions.export || false,
+      canConfigure: permissions.configure || false,
+      userRole: context.userRole
+    }
+  }
 }
 
 // Hook personalizado para verificação rápida de autorização

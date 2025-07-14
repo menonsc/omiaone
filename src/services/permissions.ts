@@ -64,7 +64,8 @@ export const RESOURCE_LABELS: Record<string, string> = {
   email_marketing: 'Email Marketing',
   integrations: 'Integrações',
   analytics: 'Analytics',
-  system: 'Sistema'
+  system: 'Sistema',
+  flow_builder: 'Flow Builder'
 }
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -82,7 +83,11 @@ export const ACTION_LABELS: Record<string, string> = {
   export: 'Exportar',
   maintain: 'Manter',
   backup: 'Backup',
-  logs: 'Logs'
+  logs: 'Logs',
+  execute: 'Executar',
+  manage_templates: 'Gerenciar Templates',
+  manage_triggers: 'Gerenciar Triggers',
+  import: 'Importar'
 }
 
 class PermissionsService {

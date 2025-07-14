@@ -20,9 +20,9 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
     try {
       console.log('🔧 Configurando webhook para instância:', instanceId)
       
-      // Get current URL for webhook configuration
-      const baseUrl = window.location.origin
-      await evolutionAPI.configureRealTimeWebhook(instanceId, baseUrl)
+      // URL do servidor de webhooks (pode ser configurada via env)
+      const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || 'http://localhost:3001'
+      await evolutionAPI.configureRealTimeWebhook(instanceId, webhookBaseUrl)
       
       console.log('✅ Webhook configurado com sucesso para:', instanceId)
     } catch (error) {
